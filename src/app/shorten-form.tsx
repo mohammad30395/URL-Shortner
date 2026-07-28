@@ -1,7 +1,12 @@
 "use client";
 
+import Image from "next/image";
 import { FormEvent, useEffect, useId, useRef, useState } from "react";
 
+import {
+  createQrCodeFileName,
+  createShortUrlQrCodeDataUrl,
+} from "../lib/qr-code/create-qr-code";
 import { validateShortCode } from "../lib/urls/generate-code";
 import { validateExpiration } from "../lib/urls/validate-expiration";
 import { validateUrl } from "../lib/urls/validate-url";
@@ -36,6 +41,8 @@ export function ShortenForm() {
   const [expirationDate, setExpirationDate] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ShortenResult | null>(null);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
+  const [qrCodeError, setQrCodeError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasCopied, setHasCopied] = useState(false);
 
@@ -46,6 +53,30 @@ export function ShortenForm() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!result) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    createShortUrlQrCodeDataUrl(result.shortUrl)
+      .then((dataUrl) => {
+        if (!isCancelled) {
+          setQrCodeDataUrl(dataUrl);
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) {
+          setQrCodeError("The QR code could not be generated in this browser.");
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [result]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -88,6 +119,8 @@ export function ShortenForm() {
     setIsSubmitting(true);
     setError(null);
     setResult(null);
+    setQrCodeDataUrl(null);
+    setQrCodeError(null);
     setHasCopied(false);
 
     try {
@@ -302,6 +335,39 @@ export function ShortenForm() {
               >
                 Open link
               </a>
+              {qrCodeDataUrl ? (
+                <a
+                  href={qrCodeDataUrl}
+                  download={createQrCodeFileName(result.code)}
+                  className="inline-flex items-center justify-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-slate-950 outline-none ring-1 ring-inset ring-slate-300 transition-colors hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 motion-reduce:transition-none"
+                >
+                  Download QR
+                </a>
+              ) : null}
+            </div>
+
+            <div className="mt-5 rounded-md border border-emerald-200 bg-white p-4">
+              <p className="text-sm font-medium text-emerald-950">QR code</p>
+              {qrCodeDataUrl ? (
+                <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center">
+                  <Image
+                    src={qrCodeDataUrl}
+                    alt={`QR code for ${result.shortUrl}`}
+                    width={160}
+                    height={160}
+                    unoptimized
+                    className="h-40 w-40 rounded-md border border-slate-200 bg-white p-2"
+                  />
+                  <p className="max-w-sm text-sm leading-6 text-slate-700">
+                    Download the PNG and use it anywhere you want people to open
+                    this short link.
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-slate-700">
+                  {qrCodeError ?? "Generating QR code..."}
+                </p>
+              )}
             </div>
           </section>
         ) : null}
