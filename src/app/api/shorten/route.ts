@@ -1,0 +1,140 @@
+import { NextResponse } from "next/server";
+
+import { createShortLink } from "../../../lib/short-links/create-short-link";
+import { validateUrl } from "../../../lib/urls/validate-url";
+
+type ErrorCode = "INVALID_JSON" | "INVALID_URL" | "INTERNAL_ERROR";
+
+type ErrorResponseBody = {
+  error: {
+    code: ErrorCode;
+    message: string;
+  };
+};
+
+type ShortenResponseBody = {
+  code: string;
+  originalUrl: string;
+  shortUrl: string;
+};
+
+const JSON_HEADERS = {
+  "Cache-Control": "no-store",
+  Pragma: "no-cache",
+};
+
+export async function POST(request: Request): Promise<NextResponse> {
+  const body = await parseRequestJson(request);
+
+  if (!body.ok) {
+    return jsonError(
+      400,
+      "INVALID_JSON",
+      "Please send a valid JSON request body.",
+    );
+  }
+
+  const submittedUrl = body.value.url;
+  const validation = validateUrl(submittedUrl);
+
+  if (!validation.ok) {
+    return jsonError(
+      400,
+      "INVALID_URL",
+      "Please enter a valid HTTP or HTTPS URL.",
+    );
+  }
+
+  try {
+    const shortLink = await createShortLink(validation.url);
+    const shortUrl = new URL(`/${shortLink.code}`, getRequestOrigin(request));
+
+    return NextResponse.json<ShortenResponseBody>(
+      {
+        code: shortLink.code,
+        originalUrl: shortLink.originalUrl,
+        shortUrl: shortUrl.toString(),
+      },
+      {
+        status: 201,
+        headers: JSON_HEADERS,
+      },
+    );
+  } catch {
+    return jsonError(
+      500,
+      "INTERNAL_ERROR",
+      "The short link could not be created. Please try again later.",
+    );
+  }
+}
+
+function jsonError(
+  status: number,
+  code: ErrorCode,
+  message: string,
+): NextResponse<ErrorResponseBody> {
+  return NextResponse.json<ErrorResponseBody>(
+    {
+      error: {
+        code,
+        message,
+      },
+    },
+    {
+      status,
+      headers: JSON_HEADERS,
+    },
+  );
+}
+
+async function parseRequestJson(
+  request: Request,
+): Promise<
+  | {
+      ok: true;
+      value: {
+        url?: unknown;
+      };
+    }
+  | {
+      ok: false;
+    }
+> {
+  try {
+    const value: unknown = await request.json();
+
+    if (!isPlainJsonObject(value)) {
+      return {
+        ok: false,
+      };
+    }
+
+    return {
+      ok: true,
+      value,
+    };
+  } catch {
+    return {
+      ok: false,
+    };
+  }
+}
+
+function isPlainJsonObject(value: unknown): value is { url?: unknown } {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function getRequestOrigin(request: Request): string {
+  try {
+    const origin = new URL(request.url).origin;
+
+    if (origin !== "null") {
+      return origin;
+    }
+  } catch {
+    // Route requests are normally absolute; this supports unusual test/proxy contexts.
+  }
+
+  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+}
