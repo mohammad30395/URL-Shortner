@@ -1,6 +1,9 @@
 import "server-only";
 
-import { getSupabaseAdminClient } from "../supabase/admin";
+import {
+  resolveShortLinkRecord,
+  type ResolveShortLinkRecordResult,
+} from "../../db/queries";
 import { validateUrl } from "../urls/validate-url";
 
 export type ShortLinkLookupResult =
@@ -14,20 +17,12 @@ export type ShortLinkLookupResult =
     };
 
 export type ShortLinkLookupRepository = {
-  findOriginalUrlByCode(code: string): Promise<
-    | {
-        ok: true;
-        originalUrl: string | null;
-      }
-    | {
-        ok: false;
-      }
-  >;
+  findOriginalUrlByCode(code: string): Promise<ResolveShortLinkRecordResult>;
 };
 
 export async function getShortLink(
   code: string,
-  repository: ShortLinkLookupRepository = createSupabaseShortLinkLookupRepository(),
+  repository: ShortLinkLookupRepository = postgresShortLinkLookupRepository,
 ): Promise<ShortLinkLookupResult> {
   const result = await repository.findOriginalUrlByCode(code);
 
@@ -60,24 +55,6 @@ export async function getShortLink(
   };
 }
 
-function createSupabaseShortLinkLookupRepository(): ShortLinkLookupRepository {
-  return {
-    async findOriginalUrlByCode(code) {
-      const { data, error } = await getSupabaseAdminClient()
-        .rpc("resolve_short_link", {
-          short_code: code,
-        });
-
-      if (error) {
-        return {
-          ok: false,
-        };
-      }
-
-      return {
-        ok: true,
-        originalUrl: data.at(0)?.original_url ?? null,
-      };
-    },
-  };
-}
+const postgresShortLinkLookupRepository: ShortLinkLookupRepository = {
+  findOriginalUrlByCode: resolveShortLinkRecord,
+};

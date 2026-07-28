@@ -14,6 +14,8 @@ const NO_CACHE_HEADERS = {
   Pragma: "no-cache",
 };
 
+export const runtime = "nodejs";
+
 export async function GET(
   request: Request,
   context: RouteContext,

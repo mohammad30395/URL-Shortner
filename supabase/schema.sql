@@ -28,22 +28,3 @@ create index if not exists short_links_last_accessed_at_idx
   where last_accessed_at is not null;
 
 alter table public.short_links enable row level security;
-
-create or replace function public.resolve_short_link(short_code text)
-returns table (original_url text)
-language sql
-security invoker
-set search_path = public, pg_temp
-as $$
-  update public.short_links
-  set
-    click_count = click_count + 1,
-    last_accessed_at = now()
-  where code = $1
-  returning original_url;
-$$;
-
-revoke all on function public.resolve_short_link(text) from public;
-revoke all on function public.resolve_short_link(text) from anon;
-revoke all on function public.resolve_short_link(text) from authenticated;
-grant execute on function public.resolve_short_link(text) to service_role;

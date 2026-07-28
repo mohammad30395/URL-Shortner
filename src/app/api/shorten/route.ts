@@ -28,6 +28,8 @@ const JSON_HEADERS = {
   Pragma: "no-cache",
 };
 
+export const runtime = "nodejs";
+
 export async function POST(request: Request): Promise<NextResponse> {
   const rateLimit = await checkShortenRateLimit(request);
 
