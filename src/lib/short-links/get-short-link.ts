@@ -64,10 +64,9 @@ function createSupabaseShortLinkLookupRepository(): ShortLinkLookupRepository {
   return {
     async findOriginalUrlByCode(code) {
       const { data, error } = await getSupabaseAdminClient()
-        .from("short_links")
-        .select("original_url")
-        .eq("code", code)
-        .maybeSingle();
+        .rpc("resolve_short_link", {
+          short_code: code,
+        });
 
       if (error) {
         return {
@@ -77,7 +76,7 @@ function createSupabaseShortLinkLookupRepository(): ShortLinkLookupRepository {
 
       return {
         ok: true,
-        originalUrl: data?.original_url ?? null,
+        originalUrl: data.at(0)?.original_url ?? null,
       };
     },
   };

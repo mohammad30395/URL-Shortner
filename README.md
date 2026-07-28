@@ -18,6 +18,12 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 - `npm run lint` runs ESLint.
 - `npm run build` creates a production build.
 
+## Database
+
+Run `supabase/schema.sql` manually in Supabase before deploying code that uses
+redirects. The SQL creates `public.short_links` and the `resolve_short_link`
+function used by `GET /{code}` to resolve links and update click counts.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

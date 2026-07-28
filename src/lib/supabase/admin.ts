@@ -36,7 +36,16 @@ type Database = {
       short_links: ShortLinksTable;
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      resolve_short_link: {
+        Args: {
+          short_code: string;
+        };
+        Returns: {
+          original_url: string;
+        }[];
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
