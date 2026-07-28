@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@supabase/server": "1.4.1",
     "@supabase/supabase-js": "2.110.9",
     "@upstash/ratelimit": "2.0.8",
     "@upstash/redis": "1.38.0",

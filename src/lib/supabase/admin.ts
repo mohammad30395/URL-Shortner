@@ -69,9 +69,9 @@ export function getSupabaseAdminClient(): SupabaseClient<Database> {
   }
 
   const supabaseUrl = getRequiredEnv("NEXT_PUBLIC_SUPABASE_URL");
-  const serviceRoleKey = getRequiredEnv("SUPABASE_SERVICE_ROLE_KEY");
+  const supabaseSecretKey = getRequiredEnv("SUPABASE_SECRET_KEY");
 
-  cachedClient = createClient<Database>(supabaseUrl, serviceRoleKey, {
+  cachedClient = createClient<Database>(supabaseUrl, supabaseSecretKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,

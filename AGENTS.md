@@ -8,7 +8,7 @@
 - Use Supabase PostgreSQL for persistent URL mappings.
 - Do not create a separate Express.js backend.
 - Keep all database credentials on the server.
-- Never expose the Supabase service-role key to client components.
+- Never expose the Supabase secret key to client components.
 - Keep client components as small as reasonably possible.
 
 ## Code Quality
