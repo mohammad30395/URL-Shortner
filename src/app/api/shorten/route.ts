@@ -88,13 +88,35 @@ export async function POST(request: Request): Promise<NextResponse> {
         headers: JSON_HEADERS,
       },
     );
-  } catch {
+  } catch (error: unknown) {
+    logShortenFailure(error);
+
     return jsonError(
       500,
       "INTERNAL_ERROR",
       "The short link could not be created. Please try again later.",
     );
   }
+}
+
+function logShortenFailure(error: unknown): void {
+  const name = error instanceof Error ? error.name : "UnknownError";
+  const message =
+    error instanceof Error
+      ? redactDatabaseUrls(error.message)
+      : "A non-Error value was thrown.";
+
+  console.error("POST /api/shorten failed.", {
+    name,
+    message,
+  });
+}
+
+function redactDatabaseUrls(message: string): string {
+  return message.replace(
+    /\bpostgres(?:ql)?:\/\/[^\s]+/gi,
+    "[REDACTED_DATABASE_URL]",
+  );
 }
 
 function jsonError(

@@ -25,6 +25,7 @@ export class CreateShortLinkError extends Error {
     public readonly code: "DATABASE_ERROR" | "CODE_COLLISION_LIMIT",
   ) {
     super(code);
+    this.name = "CreateShortLinkError";
   }
 }
 
