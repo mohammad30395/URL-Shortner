@@ -8,6 +8,13 @@
       "when": 1785242013024,
       "tag": "0000_direct_postgresql",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1785246948862,
+      "tag": "0001_curly_mad_thinker",
+      "breakpoints": true
     }
   ]
 }

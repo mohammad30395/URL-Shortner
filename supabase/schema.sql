@@ -8,9 +8,21 @@ create table if not exists public.short_links (
   created_at timestamp with time zone not null default now(),
   last_accessed_at timestamp with time zone,
   constraint short_links_code_length_check
-    check (char_length(code) between 5 and 16),
+    check (char_length(code) between 5 and 32),
   constraint short_links_code_format_check
     check (code ~ '^[A-Za-z0-9_-]+$'),
+  constraint short_links_code_reserved_check
+    check (lower(code) not in (
+      'api',
+      'admin',
+      'login',
+      'signup',
+      'dashboard',
+      'favicon.ico',
+      'robots.txt',
+      'sitemap.xml',
+      '_next'
+    )),
   constraint short_links_original_url_not_empty_check
     check (btrim(original_url) <> ''),
   constraint short_links_click_count_non_negative_check

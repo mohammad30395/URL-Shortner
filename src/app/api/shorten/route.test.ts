@@ -5,11 +5,23 @@ vi.mock("../../../lib/rate-limit/shorten-rate-limit", () => ({
 }));
 
 vi.mock("../../../lib/short-links/create-short-link", () => ({
+  CreateShortLinkError: class CreateShortLinkError extends Error {
+    constructor(
+      public readonly code:
+        "ALIAS_CONFLICT" | "DATABASE_ERROR" | "CODE_COLLISION_LIMIT",
+    ) {
+      super(code);
+      this.name = "CreateShortLinkError";
+    }
+  },
   createShortLink: vi.fn(),
 }));
 
 import { checkShortenRateLimit } from "../../../lib/rate-limit/shorten-rate-limit";
-import { createShortLink } from "../../../lib/short-links/create-short-link";
+import {
+  createShortLink,
+  CreateShortLinkError,
+} from "../../../lib/short-links/create-short-link";
 import { POST } from "./route";
 
 const mockedCheckShortenRateLimit = vi.mocked(checkShortenRateLimit);
@@ -59,6 +71,36 @@ describe("POST /api/shorten", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(mockedCreateShortLink).toHaveBeenCalledWith(
       "https://example.com/a/long/path",
+      {
+        customCode: undefined,
+      },
+    );
+  });
+
+  it("creates a short link with a valid custom alias", async () => {
+    mockedCreateShortLink.mockResolvedValue({
+      code: "Launch_2026",
+      originalUrl: "https://example.com/a/long/path",
+    });
+
+    const response = await POST(
+      createJsonRequest({
+        alias: " Launch_2026 ",
+        url: "https://example.com/a/long/path",
+      }),
+    );
+
+    await expect(readJson(response)).resolves.toEqual({
+      code: "Launch_2026",
+      originalUrl: "https://example.com/a/long/path",
+      shortUrl: "http://localhost:3000/Launch_2026",
+    });
+    expect(response.status).toBe(201);
+    expect(mockedCreateShortLink).toHaveBeenCalledWith(
+      "https://example.com/a/long/path",
+      {
+        customCode: "Launch_2026",
+      },
     );
   });
 
@@ -77,6 +119,64 @@ describe("POST /api/shorten", () => {
     });
     expect(response.status).toBe(400);
     expect(mockedCreateShortLink).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 for invalid aliases", async () => {
+    const response = await POST(
+      createJsonRequest({
+        alias: "bad.alias",
+        url: "https://example.com/",
+      }),
+    );
+
+    await expect(readJson(response)).resolves.toEqual({
+      error: {
+        code: "INVALID_ALIAS",
+        message:
+          "Alias can contain only letters, numbers, hyphens, and underscores.",
+      },
+    });
+    expect(response.status).toBe(400);
+    expect(mockedCreateShortLink).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 for reserved aliases", async () => {
+    const response = await POST(
+      createJsonRequest({
+        alias: "Dashboard",
+        url: "https://example.com/",
+      }),
+    );
+
+    await expect(readJson(response)).resolves.toEqual({
+      error: {
+        code: "INVALID_ALIAS",
+        message: "That alias is reserved. Choose another alias.",
+      },
+    });
+    expect(response.status).toBe(400);
+    expect(mockedCreateShortLink).not.toHaveBeenCalled();
+  });
+
+  it("returns 409 when a custom alias already exists", async () => {
+    mockedCreateShortLink.mockRejectedValue(
+      new CreateShortLinkError("ALIAS_CONFLICT"),
+    );
+
+    const response = await POST(
+      createJsonRequest({
+        alias: "Taken_2026",
+        url: "https://example.com/",
+      }),
+    );
+
+    await expect(readJson(response)).resolves.toEqual({
+      error: {
+        code: "ALIAS_CONFLICT",
+        message: "That alias is already in use. Choose another alias.",
+      },
+    });
+    expect(response.status).toBe(409);
   });
 
   it("returns 400 for missing URL fields", async () => {

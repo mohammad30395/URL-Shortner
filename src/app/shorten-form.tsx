@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useId, useRef, useState } from "react";
 
+import { validateShortCode } from "../lib/urls/generate-code";
 import { validateUrl } from "../lib/urls/validate-url";
 
 type ShortenResult = {
@@ -21,10 +22,13 @@ const COPIED_RESET_DELAY_MS = 1800;
 
 export function ShortenForm() {
   const urlInputId = useId();
+  const aliasInputId = useId();
+  const aliasHelpId = useId();
   const errorId = useId();
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const submittingRef = useRef(false);
   const [url, setUrl] = useState("");
+  const [alias, setAlias] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ShortenResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,6 +49,7 @@ export function ShortenForm() {
       return;
     }
 
+    const trimmedAlias = alias.trim();
     const validation = validateUrl(url);
 
     if (!validation.ok) {
@@ -52,6 +57,17 @@ export function ShortenForm() {
       setResult(null);
       setHasCopied(false);
       return;
+    }
+
+    if (trimmedAlias) {
+      const aliasValidation = validateShortCode(trimmedAlias);
+
+      if (!aliasValidation.ok) {
+        setError(aliasValidation.error);
+        setResult(null);
+        setHasCopied(false);
+        return;
+      }
     }
 
     submittingRef.current = true;
@@ -67,6 +83,7 @@ export function ShortenForm() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          alias: trimmedAlias || undefined,
           url: validation.url,
         }),
       });
@@ -144,6 +161,32 @@ export function ShortenForm() {
             placeholder="https://example.com/a/long/path"
             className="block w-full rounded-md border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 outline-none placeholder:text-slate-400 focus-visible:border-slate-950 focus-visible:ring-2 focus-visible:ring-slate-950/20"
           />
+        </div>
+
+        <div className="space-y-2">
+          <label
+            htmlFor={aliasInputId}
+            className="block text-sm font-medium text-slate-900"
+          >
+            Custom alias{" "}
+            <span className="font-normal text-slate-500">(optional)</span>
+          </label>
+          <input
+            id={aliasInputId}
+            name="alias"
+            type="text"
+            autoComplete="off"
+            value={alias}
+            onChange={(event) => setAlias(event.target.value)}
+            aria-describedby={`${aliasHelpId} ${error ? errorId : ""}`.trim()}
+            aria-invalid={Boolean(error)}
+            placeholder="my-link_2026"
+            className="block w-full rounded-md border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 outline-none placeholder:text-slate-400 focus-visible:border-slate-950 focus-visible:ring-2 focus-visible:ring-slate-950/20"
+          />
+          <p id={aliasHelpId} className="text-sm leading-6 text-slate-600">
+            Aliases are case-sensitive and can use 5-32 letters, numbers,
+            hyphens, or underscores.
+          </p>
         </div>
 
         {error ? (

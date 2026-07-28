@@ -1,0 +1,3 @@
+ALTER TABLE "short_links" DROP CONSTRAINT "short_links_code_length_check";--> statement-breakpoint
+ALTER TABLE "short_links" ADD CONSTRAINT "short_links_code_reserved_check" CHECK (lower("short_links"."code") not in ('api', 'admin', 'login', 'signup', 'dashboard', 'favicon.ico', 'robots.txt', 'sitemap.xml', '_next'));--> statement-breakpoint
+ALTER TABLE "short_links" ADD CONSTRAINT "short_links_code_length_check" CHECK (char_length("short_links"."code") between 5 and 32);

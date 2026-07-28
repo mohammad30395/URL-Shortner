@@ -2,7 +2,8 @@
 
 LinkLite is a small public URL-shortening app. It lets someone submit a long
 HTTP or HTTPS URL, stores the mapping in Supabase PostgreSQL, returns a short
-URL, and redirects visitors from the short URL to the saved destination.
+URL, and redirects visitors from the short URL to the saved destination. Users
+can optionally choose their own short-code alias.
 
 This project uses:
 
@@ -50,6 +51,13 @@ npm install
 
 This creates the `public.short_links` table, constraints, indexes, and Row Level
 Security. The SQL is idempotent and does not delete existing short links.
+
+If you already deployed an earlier version, run the Drizzle migration after
+setting `DATABASE_URL` so existing databases accept the new alias constraints:
+
+```bash
+npm run db:migrate
+```
 
 ### 5. Create Your Local Environment File
 
@@ -123,6 +131,19 @@ Open `http://localhost:3000`.
 
 Open the generated short URL. It should temporarily redirect to the original
 URL with a `307` redirect.
+
+## Custom Aliases
+
+Aliases are optional. When provided, an alias must be 5-32 characters and may
+contain only letters, numbers, hyphens, and underscores.
+
+Alias matching is case-sensitive: `Launch2026` and `launch2026` are different
+short links. Reserved system paths are blocked case-insensitively, including
+`api`, `admin`, `login`, `signup`, `dashboard`, `favicon.ico`, `robots.txt`,
+`sitemap.xml`, and `_next`.
+
+If an alias already exists, the app returns a clear conflict response and keeps
+the existing link unchanged.
 
 ## Environment Variables
 
@@ -205,6 +226,16 @@ openssl rand -base64 32
 ### 4. Deploy
 
 Deploy the project from Vercel.
+
+Before testing aliases in production, apply the reviewed Drizzle migration from
+a machine whose ignored `.env.local` points at the same Supabase database used
+by Vercel:
+
+```bash
+npm run db:migrate
+```
+
+Do not commit `.env.local` or print the database URL in logs.
 
 ### 5. Set The Production App URL
 

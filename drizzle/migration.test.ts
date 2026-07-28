@@ -7,6 +7,10 @@ const migrationSql = readFileSync(
   join(process.cwd(), "drizzle/0000_direct_postgresql.sql"),
   "utf8",
 );
+const aliasMigrationSql = readFileSync(
+  join(process.cwd(), "drizzle/0001_curly_mad_thinker.sql"),
+  "utf8",
+);
 
 describe("direct PostgreSQL migration", () => {
   it("is additive and safe for an existing short-links table", () => {
@@ -27,5 +31,14 @@ describe("direct PostgreSQL migration", () => {
     expect(migrationSql).toMatch(/short_links_code_format_check/i);
     expect(migrationSql).toMatch(/short_links_original_url_not_empty_check/i);
     expect(migrationSql).toMatch(/short_links_click_count_non_negative_check/i);
+  });
+
+  it("adds custom alias database constraints without touching table data", () => {
+    expect(aliasMigrationSql).toMatch(/short_links_code_reserved_check/i);
+    expect(aliasMigrationSql).toMatch(
+      /char_length\("short_links"\."code"\) between 5 and 32/i,
+    );
+    expect(aliasMigrationSql).not.toMatch(/\b(truncate|delete)\b/i);
+    expect(aliasMigrationSql).not.toMatch(/\bdrop\s+table\b/i);
   });
 });

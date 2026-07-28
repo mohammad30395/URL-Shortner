@@ -38,11 +38,15 @@ export const shortLinks = pgTable(
       .where(sql`${table.lastAccessedAt} is not null`),
     check(
       "short_links_code_length_check",
-      sql`char_length(${table.code}) between 5 and 16`,
+      sql`char_length(${table.code}) between 5 and 32`,
     ),
     check(
       "short_links_code_format_check",
       sql`${table.code} ~ '^[A-Za-z0-9_-]+$'`,
+    ),
+    check(
+      "short_links_code_reserved_check",
+      sql`lower(${table.code}) not in ('api', 'admin', 'login', 'signup', 'dashboard', 'favicon.ico', 'robots.txt', 'sitemap.xml', '_next')`,
     ),
     check(
       "short_links_original_url_not_empty_check",

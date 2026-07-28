@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server";
 
 import { checkShortenRateLimit } from "../../../lib/rate-limit/shorten-rate-limit";
-import { createShortLink } from "../../../lib/short-links/create-short-link";
+import {
+  createShortLink,
+  CreateShortLinkError,
+} from "../../../lib/short-links/create-short-link";
+import { validateShortCode } from "../../../lib/urls/generate-code";
 import { validateUrl } from "../../../lib/urls/validate-url";
 
 type ErrorCode =
-  "INVALID_JSON" | "INVALID_URL" | "RATE_LIMITED" | "INTERNAL_ERROR";
+  | "ALIAS_CONFLICT"
+  | "INTERNAL_ERROR"
+  | "INVALID_ALIAS"
+  | "INVALID_JSON"
+  | "INVALID_URL"
+  | "RATE_LIMITED";
 
 type ErrorResponseBody = {
   error: {
@@ -60,6 +69,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 
   const submittedUrl = body.value.url;
+  const submittedAlias = body.value.alias;
   const validation = validateUrl(submittedUrl);
 
   if (!validation.ok) {
@@ -70,8 +80,16 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
+  const aliasValidation = validateOptionalAlias(submittedAlias);
+
+  if (!aliasValidation.ok) {
+    return jsonError(400, "INVALID_ALIAS", aliasValidation.error);
+  }
+
   try {
-    const shortLink = await createShortLink(validation.url);
+    const shortLink = await createShortLink(validation.url, {
+      customCode: aliasValidation.code ?? undefined,
+    });
     const shortUrl = new URL(`/${shortLink.code}`, getRequestOrigin(request));
 
     return NextResponse.json<ShortenResponseBody>(
@@ -86,6 +104,17 @@ export async function POST(request: Request): Promise<NextResponse> {
       },
     );
   } catch (error: unknown) {
+    if (
+      error instanceof CreateShortLinkError &&
+      error.code === "ALIAS_CONFLICT"
+    ) {
+      return jsonError(
+        409,
+        "ALIAS_CONFLICT",
+        "That alias is already in use. Choose another alias.",
+      );
+    }
+
     logShortenFailure(error);
 
     return jsonError(
@@ -94,6 +123,41 @@ export async function POST(request: Request): Promise<NextResponse> {
       "The short link could not be created. Please try again later.",
     );
   }
+}
+
+function validateOptionalAlias(value: unknown):
+  | {
+      ok: true;
+      code: string | null;
+    }
+  | {
+      ok: false;
+      error: string;
+    } {
+  if (value === undefined || value === null) {
+    return {
+      ok: true,
+      code: null,
+    };
+  }
+
+  if (typeof value === "string" && value.trim() === "") {
+    return {
+      ok: true,
+      code: null,
+    };
+  }
+
+  const validation = validateShortCode(value);
+
+  if (!validation.ok) {
+    return validation;
+  }
+
+  return {
+    ok: true,
+    code: validation.code,
+  };
 }
 
 function logShortenFailure(error: unknown): void {
@@ -143,6 +207,7 @@ async function parseRequestJson(request: Request): Promise<
   | {
       ok: true;
       value: {
+        alias?: unknown;
         url?: unknown;
       };
     }
@@ -170,7 +235,9 @@ async function parseRequestJson(request: Request): Promise<
   }
 }
 
-function isPlainJsonObject(value: unknown): value is { url?: unknown } {
+function isPlainJsonObject(
+  value: unknown,
+): value is { alias?: unknown; url?: unknown } {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 

@@ -45,6 +45,22 @@ describe("GET /{code}", () => {
     expect(mockedGetShortLink).toHaveBeenCalledWith("Ab3xP9q");
   });
 
+  it("redirects existing custom aliases up to 32 characters", async () => {
+    const alias = "Launch_Campaign_2026_Custom_01";
+    mockedGetShortLink.mockResolvedValue({
+      ok: true,
+      originalUrl: "https://example.com/a/long/path",
+    });
+
+    const response = await GET(createRequest(alias), createContext(alias));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("Location")).toBe(
+      "https://example.com/a/long/path",
+    );
+    expect(mockedGetShortLink).toHaveBeenCalledWith(alias);
+  });
+
   it("returns 404 for missing short codes", async () => {
     mockedGetShortLink.mockResolvedValue({
       ok: false,
@@ -67,6 +83,16 @@ describe("GET /{code}", () => {
     const response = await GET(
       createRequest("bad-code!"),
       createContext("bad-code!"),
+    );
+
+    expect(response.status).toBe(404);
+    expect(mockedGetShortLink).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 for reserved system paths", async () => {
+    const response = await GET(
+      createRequest("Dashboard"),
+      createContext("Dashboard"),
     );
 
     expect(response.status).toBe(404);

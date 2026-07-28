@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getShortLink } from "../../lib/short-links/get-short-link";
-import { SHORT_CODE_REGEX } from "../../lib/urls/generate-code";
+import { validateShortCode } from "../../lib/urls/generate-code";
 
 type RouteContext = {
   params: Promise<{
@@ -22,7 +22,7 @@ export async function GET(
 ): Promise<Response> {
   const { code } = await context.params;
 
-  if (!SHORT_CODE_REGEX.test(code)) {
+  if (!validateShortCode(code).ok) {
     return notFoundResponse();
   }
 

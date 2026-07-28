@@ -28,7 +28,10 @@ describe("supabase/schema.sql", () => {
 
   it("preserves constraints, indexes, and row-level security", () => {
     expect(schemaSql).toMatch(/short_links_code_length_check/i);
+    expect(schemaSql).toMatch(/char_length\(code\) between 5 and 32/i);
     expect(schemaSql).toMatch(/short_links_code_format_check/i);
+    expect(schemaSql).toMatch(/short_links_code_reserved_check/i);
+    expect(schemaSql).toMatch(/lower\(code\) not in/i);
     expect(schemaSql).toMatch(/short_links_original_url_not_empty_check/i);
     expect(schemaSql).toMatch(/short_links_click_count_non_negative_check/i);
     expect(schemaSql).toMatch(

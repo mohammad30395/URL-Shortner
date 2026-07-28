@@ -1,0 +1,139 @@
+{
+  "id": "582c1d6d-9a4c-4b3a-b04c-25c2e77c6856",
+  "prevId": "f5f32c5a-91e8-4131-84be-704becf97652",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.short_links": {
+      "name": "short_links",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "original_url": {
+          "name": "original_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "click_count": {
+          "name": "click_count",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "0"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "last_accessed_at": {
+          "name": "last_accessed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "short_links_code_key": {
+          "name": "short_links_code_key",
+          "columns": [
+            {
+              "expression": "code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "short_links_created_at_idx": {
+          "name": "short_links_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "short_links_last_accessed_at_idx": {
+          "name": "short_links_last_accessed_at_idx",
+          "columns": [
+            {
+              "expression": "last_accessed_at",
+              "isExpression": false,
+              "asc": false,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "where": "\"short_links\".\"last_accessed_at\" is not null",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "short_links_code_length_check": {
+          "name": "short_links_code_length_check",
+          "value": "char_length(\"short_links\".\"code\") between 5 and 32"
+        },
+        "short_links_code_format_check": {
+          "name": "short_links_code_format_check",
+          "value": "\"short_links\".\"code\" ~ '^[A-Za-z0-9_-]+$'"
+        },
+        "short_links_code_reserved_check": {
+          "name": "short_links_code_reserved_check",
+          "value": "lower(\"short_links\".\"code\") not in ('api', 'admin', 'login', 'signup', 'dashboard', 'favicon.ico', 'robots.txt', 'sitemap.xml', '_next')"
+        },
+        "short_links_original_url_not_empty_check": {
+          "name": "short_links_original_url_not_empty_check",
+          "value": "btrim(\"short_links\".\"original_url\") <> ''"
+        },
+        "short_links_click_count_non_negative_check": {
+          "name": "short_links_click_count_non_negative_check",
+          "value": "\"short_links\".\"click_count\" >= 0"
+        }
+      },
+      "isRLSEnabled": true
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

@@ -70,6 +70,41 @@ describe("createShortLink", () => {
     expect(repository.insertShortLink).toHaveBeenCalledTimes(3);
   });
 
+  it("creates a short link with a custom alias without generating another code", async () => {
+    const repository = createRepository([{ ok: true }]);
+    const generateCode = vi.fn(() => "Ab3xP9q");
+
+    await expect(
+      createShortLink("https://example.com/", {
+        customCode: "Launch_2026",
+        generateCode,
+        repository,
+      }),
+    ).resolves.toEqual({
+      code: "Launch_2026",
+      originalUrl: "https://example.com/",
+    });
+
+    expect(generateCode).not.toHaveBeenCalled();
+    expect(repository.insertShortLink).toHaveBeenCalledWith({
+      code: "Launch_2026",
+      originalUrl: "https://example.com/",
+    });
+  });
+
+  it("returns an alias conflict without replacing existing links", async () => {
+    const repository = createRepository([{ ok: false, reason: "collision" }]);
+
+    await expect(
+      createShortLink("https://example.com/", {
+        customCode: "Taken_2026",
+        repository,
+      }),
+    ).rejects.toMatchObject(new CreateShortLinkError("ALIAS_CONFLICT"));
+
+    expect(repository.insertShortLink).toHaveBeenCalledTimes(1);
+  });
+
   it("stops after five collision attempts", async () => {
     const repository = createRepository([
       { ok: false, reason: "collision" },
