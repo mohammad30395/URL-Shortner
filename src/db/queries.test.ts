@@ -84,6 +84,21 @@ describe("direct PostgreSQL queries", () => {
     });
   });
 
+  it("recognizes wrapped PostgreSQL unique violations as code collisions", async () => {
+    await expect(
+      insertShortLinkRecord(input, async () => {
+        throw {
+          cause: {
+            code: "23505",
+          },
+        };
+      }),
+    ).resolves.toEqual({
+      ok: false,
+      reason: "collision",
+    });
+  });
+
   it("maps unexpected insert failures to a safe database result", async () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
 

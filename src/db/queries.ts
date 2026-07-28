@@ -154,11 +154,28 @@ async function executeFindInactiveStatus(
 }
 
 function isShortCodeCollision(error: unknown): boolean {
+  if (hasPostgresErrorCode(error, UNIQUE_VIOLATION_CODE)) {
+    return true;
+  }
+
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "cause" in error &&
+    hasPostgresErrorCode(error.cause, UNIQUE_VIOLATION_CODE)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function hasPostgresErrorCode(error: unknown, code: string): boolean {
   return (
     typeof error === "object" &&
     error !== null &&
     "code" in error &&
-    error.code === UNIQUE_VIOLATION_CODE
+    error.code === code
   );
 }
 
