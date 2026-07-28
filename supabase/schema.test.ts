@@ -21,6 +21,7 @@ describe("supabase/schema.sql", () => {
       "click_count",
       "created_at",
       "last_accessed_at",
+      "expires_at",
     ]) {
       expect(schemaSql).toMatch(new RegExp(`\\b${column}\\b`, "i"));
     }
@@ -36,6 +37,9 @@ describe("supabase/schema.sql", () => {
     expect(schemaSql).toMatch(/short_links_click_count_non_negative_check/i);
     expect(schemaSql).toMatch(
       /create unique index if not exists short_links_code_key/i,
+    );
+    expect(schemaSql).toMatch(
+      /create index if not exists short_links_expires_at_idx/i,
     );
     expect(schemaSql).toMatch(
       /alter table public\.short_links enable row level security/i,

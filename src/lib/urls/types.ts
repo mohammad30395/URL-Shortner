@@ -17,3 +17,13 @@ export type ShortCodeValidationResult =
       ok: false;
       error: string;
     };
+
+export type ExpirationValidationResult =
+  | {
+      ok: true;
+      expiresAt: Date | null;
+    }
+  | {
+      ok: false;
+      error: string;
+    };

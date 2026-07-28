@@ -13,7 +13,7 @@ export type ShortLinkLookupResult =
     }
   | {
       ok: false;
-      reason: "missing" | "database" | "unsafe-url";
+      reason: "database" | "expired" | "missing" | "unsafe-url";
     };
 
 export type ShortLinkLookupRepository = {
@@ -33,10 +33,10 @@ export async function getShortLink(
     };
   }
 
-  if (!result.originalUrl) {
+  if (result.status !== "active") {
     return {
       ok: false,
-      reason: "missing",
+      reason: result.status,
     };
   }
 

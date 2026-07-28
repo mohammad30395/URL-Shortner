@@ -3,10 +3,12 @@
 import { FormEvent, useEffect, useId, useRef, useState } from "react";
 
 import { validateShortCode } from "../lib/urls/generate-code";
+import { validateExpiration } from "../lib/urls/validate-expiration";
 import { validateUrl } from "../lib/urls/validate-url";
 
 type ShortenResult = {
   code: string;
+  expiresAt: string | null;
   originalUrl: string;
   shortUrl: string;
 };
@@ -24,11 +26,14 @@ export function ShortenForm() {
   const urlInputId = useId();
   const aliasInputId = useId();
   const aliasHelpId = useId();
+  const expirationInputId = useId();
+  const expirationHelpId = useId();
   const errorId = useId();
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const submittingRef = useRef(false);
   const [url, setUrl] = useState("");
   const [alias, setAlias] = useState("");
+  const [expirationDate, setExpirationDate] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ShortenResult | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,6 +75,15 @@ export function ShortenForm() {
       }
     }
 
+    const expirationValidation = validateExpiration(expirationDate);
+
+    if (!expirationValidation.ok) {
+      setError(expirationValidation.error);
+      setResult(null);
+      setHasCopied(false);
+      return;
+    }
+
     submittingRef.current = true;
     setIsSubmitting(true);
     setError(null);
@@ -84,6 +98,7 @@ export function ShortenForm() {
         },
         body: JSON.stringify({
           alias: trimmedAlias || undefined,
+          expiresAt: expirationDate || undefined,
           url: validation.url,
         }),
       });
@@ -189,6 +204,31 @@ export function ShortenForm() {
           </p>
         </div>
 
+        <div className="space-y-2">
+          <label
+            htmlFor={expirationInputId}
+            className="block text-sm font-medium text-slate-900"
+          >
+            Expiration date{" "}
+            <span className="font-normal text-slate-500">(optional)</span>
+          </label>
+          <input
+            id={expirationInputId}
+            name="expiresAt"
+            type="date"
+            value={expirationDate}
+            onChange={(event) => setExpirationDate(event.target.value)}
+            aria-describedby={`${expirationHelpId} ${
+              error ? errorId : ""
+            }`.trim()}
+            aria-invalid={Boolean(error)}
+            className="block w-full rounded-md border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 outline-none placeholder:text-slate-400 focus-visible:border-slate-950 focus-visible:ring-2 focus-visible:ring-slate-950/20"
+          />
+          <p id={expirationHelpId} className="text-sm leading-6 text-slate-600">
+            Expired links stop redirecting and show a clear unavailable message.
+          </p>
+        </div>
+
         {error ? (
           <p
             id={errorId}
@@ -236,6 +276,14 @@ export function ShortenForm() {
               >
                 Original: {result.originalUrl}
               </p>
+              {result.expiresAt ? (
+                <p className="mt-2 text-sm text-slate-700">
+                  Expires:{" "}
+                  <time dateTime={result.expiresAt}>
+                    {formatExpiration(result.expiresAt)}
+                  </time>
+                </p>
+              ) : null}
             </div>
 
             <div className="mt-4 flex flex-col gap-3 sm:flex-row">
@@ -262,6 +310,20 @@ export function ShortenForm() {
   );
 }
 
+function formatExpiration(value: string): string {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 function getApiErrorMessage(payload: unknown): string {
   if (isApiError(payload)) {
     return payload.error.message;
@@ -285,6 +347,7 @@ function isShortenResult(value: unknown): value is ShortenResult {
   return (
     isRecord(value) &&
     typeof value.code === "string" &&
+    (typeof value.expiresAt === "string" || value.expiresAt === null) &&
     typeof value.originalUrl === "string" &&
     typeof value.shortUrl === "string"
   );

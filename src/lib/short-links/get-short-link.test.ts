@@ -18,6 +18,7 @@ describe("getShortLink", () => {
   it("returns an existing short link", async () => {
     const repository = createRepository({
       ok: true,
+      status: "active",
       originalUrl: "https://example.com/path",
     });
 
@@ -30,12 +31,24 @@ describe("getShortLink", () => {
   it("returns missing when no row exists", async () => {
     const repository = createRepository({
       ok: true,
-      originalUrl: null,
+      status: "missing",
     });
 
     await expect(getShortLink("Ab3xP9q", repository)).resolves.toEqual({
       ok: false,
       reason: "missing",
+    });
+  });
+
+  it("returns expired when the row exists but is expired", async () => {
+    const repository = createRepository({
+      ok: true,
+      status: "expired",
+    });
+
+    await expect(getShortLink("Ab3xP9q", repository)).resolves.toEqual({
+      ok: false,
+      reason: "expired",
     });
   });
 
@@ -53,6 +66,7 @@ describe("getShortLink", () => {
   it("rejects unsafe stored URLs", async () => {
     const repository = createRepository({
       ok: true,
+      status: "active",
       originalUrl: "javascript:alert(1)",
     });
 

@@ -11,6 +11,10 @@ const aliasMigrationSql = readFileSync(
   join(process.cwd(), "drizzle/0001_curly_mad_thinker.sql"),
   "utf8",
 );
+const expirationMigrationSql = readFileSync(
+  join(process.cwd(), "drizzle/0002_add_expires_at.sql"),
+  "utf8",
+);
 
 describe("direct PostgreSQL migration", () => {
   it("is additive and safe for an existing short-links table", () => {
@@ -40,5 +44,14 @@ describe("direct PostgreSQL migration", () => {
     );
     expect(aliasMigrationSql).not.toMatch(/\b(truncate|delete)\b/i);
     expect(aliasMigrationSql).not.toMatch(/\bdrop\s+table\b/i);
+  });
+
+  it("adds expiration support without touching existing rows", () => {
+    expect(expirationMigrationSql).toMatch(
+      /alter table "short_links" add column "expires_at" timestamp with time zone/i,
+    );
+    expect(expirationMigrationSql).toMatch(/short_links_expires_at_idx/i);
+    expect(expirationMigrationSql).not.toMatch(/\b(truncate|delete)\b/i);
+    expect(expirationMigrationSql).not.toMatch(/\bdrop\s+table\b/i);
   });
 });

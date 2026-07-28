@@ -7,6 +7,7 @@ create table if not exists public.short_links (
   click_count bigint not null default 0,
   created_at timestamp with time zone not null default now(),
   last_accessed_at timestamp with time zone,
+  expires_at timestamp with time zone,
   constraint short_links_code_length_check
     check (char_length(code) between 5 and 32),
   constraint short_links_code_format_check
@@ -34,6 +35,10 @@ create unique index if not exists short_links_code_key
 
 create index if not exists short_links_created_at_idx
   on public.short_links (created_at desc);
+
+create index if not exists short_links_expires_at_idx
+  on public.short_links (expires_at asc)
+  where expires_at is not null;
 
 create index if not exists short_links_last_accessed_at_idx
   on public.short_links (last_accessed_at desc)

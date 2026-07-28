@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../lib/rate-limit/shorten-rate-limit", () => ({
   checkShortenRateLimit: vi.fn(),
@@ -50,9 +50,14 @@ describe("POST /api/shorten", () => {
     mockedCreateShortLink.mockReset();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("creates a short link for valid requests", async () => {
     mockedCreateShortLink.mockResolvedValue({
       code: "Ab3xP9q",
+      expiresAt: null,
       originalUrl: "https://example.com/a/long/path",
     });
 
@@ -64,6 +69,7 @@ describe("POST /api/shorten", () => {
 
     await expect(readJson(response)).resolves.toEqual({
       code: "Ab3xP9q",
+      expiresAt: null,
       originalUrl: "https://example.com/a/long/path",
       shortUrl: "http://localhost:3000/Ab3xP9q",
     });
@@ -73,6 +79,7 @@ describe("POST /api/shorten", () => {
       "https://example.com/a/long/path",
       {
         customCode: undefined,
+        expiresAt: null,
       },
     );
   });
@@ -80,6 +87,7 @@ describe("POST /api/shorten", () => {
   it("creates a short link with a valid custom alias", async () => {
     mockedCreateShortLink.mockResolvedValue({
       code: "Launch_2026",
+      expiresAt: null,
       originalUrl: "https://example.com/a/long/path",
     });
 
@@ -92,6 +100,7 @@ describe("POST /api/shorten", () => {
 
     await expect(readJson(response)).resolves.toEqual({
       code: "Launch_2026",
+      expiresAt: null,
       originalUrl: "https://example.com/a/long/path",
       shortUrl: "http://localhost:3000/Launch_2026",
     });
@@ -100,6 +109,39 @@ describe("POST /api/shorten", () => {
       "https://example.com/a/long/path",
       {
         customCode: "Launch_2026",
+        expiresAt: null,
+      },
+    );
+  });
+
+  it("creates a short link with a future expiration date", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-28T12:00:00.000Z"));
+    mockedCreateShortLink.mockResolvedValue({
+      code: "Ab3xP9q",
+      expiresAt: "2026-07-29T23:59:59.999Z",
+      originalUrl: "https://example.com/a/long/path",
+    });
+
+    const response = await POST(
+      createJsonRequest({
+        expiresAt: "2026-07-29",
+        url: "https://example.com/a/long/path",
+      }),
+    );
+
+    await expect(readJson(response)).resolves.toEqual({
+      code: "Ab3xP9q",
+      expiresAt: "2026-07-29T23:59:59.999Z",
+      originalUrl: "https://example.com/a/long/path",
+      shortUrl: "http://localhost:3000/Ab3xP9q",
+    });
+    expect(response.status).toBe(201);
+    expect(mockedCreateShortLink).toHaveBeenCalledWith(
+      "https://example.com/a/long/path",
+      {
+        customCode: undefined,
+        expiresAt: new Date("2026-07-29T23:59:59.999Z"),
       },
     );
   });
@@ -152,6 +194,45 @@ describe("POST /api/shorten", () => {
       error: {
         code: "INVALID_ALIAS",
         message: "That alias is reserved. Choose another alias.",
+      },
+    });
+    expect(response.status).toBe(400);
+    expect(mockedCreateShortLink).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 for expiration dates in the past", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-28T12:00:00.000Z"));
+
+    const response = await POST(
+      createJsonRequest({
+        expiresAt: "2026-07-27",
+        url: "https://example.com/",
+      }),
+    );
+
+    await expect(readJson(response)).resolves.toEqual({
+      error: {
+        code: "INVALID_EXPIRATION",
+        message: "Expiration date must be in the future.",
+      },
+    });
+    expect(response.status).toBe(400);
+    expect(mockedCreateShortLink).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 for malformed expiration dates", async () => {
+    const response = await POST(
+      createJsonRequest({
+        expiresAt: "not-a-date",
+        url: "https://example.com/",
+      }),
+    );
+
+    await expect(readJson(response)).resolves.toEqual({
+      error: {
+        code: "INVALID_EXPIRATION",
+        message: "Enter a valid expiration date.",
       },
     });
     expect(response.status).toBe(400);

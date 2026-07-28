@@ -29,10 +29,17 @@ export const shortLinks = pgTable(
       withTimezone: true,
       mode: "date",
     }),
+    expiresAt: timestamp("expires_at", {
+      withTimezone: true,
+      mode: "date",
+    }),
   },
   (table) => [
     uniqueIndex("short_links_code_key").on(table.code),
     index("short_links_created_at_idx").on(table.createdAt.desc()),
+    index("short_links_expires_at_idx")
+      .on(table.expiresAt.asc())
+      .where(sql`${table.expiresAt} is not null`),
     index("short_links_last_accessed_at_idx")
       .on(table.lastAccessedAt.desc())
       .where(sql`${table.lastAccessedAt} is not null`),

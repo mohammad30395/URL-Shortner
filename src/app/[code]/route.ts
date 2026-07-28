@@ -34,7 +34,15 @@ export async function GET(
     return notFoundResponse();
   }
 
-  if (!result.ok || createsRedirectLoop(request, result.originalUrl)) {
+  if (!result.ok) {
+    if (result.reason === "expired") {
+      return expiredResponse();
+    }
+
+    return notFoundResponse();
+  }
+
+  if (createsRedirectLoop(request, result.originalUrl)) {
     return notFoundResponse();
   }
 
@@ -47,6 +55,33 @@ export async function GET(
   }
 
   return response;
+}
+
+function expiredResponse(): Response {
+  return new Response(
+    `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Short link expired</title>
+  </head>
+  <body>
+    <main>
+      <h1>Short link expired</h1>
+      <p>This short link has expired and is no longer available.</p>
+      <p><a href="/">Return to the homepage</a></p>
+    </main>
+  </body>
+</html>`,
+    {
+      status: 410,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8",
+        ...NO_CACHE_HEADERS,
+      },
+    },
+  );
 }
 
 function notFoundResponse(): Response {

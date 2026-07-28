@@ -49,11 +49,13 @@ npm install
 4. Paste the full contents of `supabase/schema.sql`.
 5. Run the query.
 
-This creates the `public.short_links` table, constraints, indexes, and Row Level
-Security. The SQL is idempotent and does not delete existing short links.
+This creates the `public.short_links` table, including the optional
+`expires_at` timestamp, constraints, indexes, and Row Level Security. The SQL is
+idempotent and does not delete existing short links.
 
 If you already deployed an earlier version, run the Drizzle migration after
-setting `DATABASE_URL` so existing databases accept the new alias constraints:
+setting `DATABASE_URL` so existing databases receive the latest alias
+constraints and expiration-date column:
 
 ```bash
 npm run db:migrate
@@ -124,8 +126,10 @@ Open `http://localhost:3000`.
 ### 9. Create A Test Short Link
 
 1. Paste a valid `http://` or `https://` URL into the form.
-2. Select **Shorten URL**.
-3. Confirm the app displays a complete short URL.
+2. Optionally enter a custom alias.
+3. Optionally choose a future expiration date.
+4. Select **Shorten URL**.
+5. Confirm the app displays a complete short URL.
 
 ### 10. Test The Redirect
 
@@ -144,6 +148,26 @@ short links. Reserved system paths are blocked case-insensitively, including
 
 If an alias already exists, the app returns a clear conflict response and keeps
 the existing link unchanged.
+
+## Expiration Dates
+
+Expiration dates are optional. When provided from the form, the date is stored
+as the end of that UTC day. API callers may also send a full ISO date-time in
+the `expiresAt` field.
+
+The server rejects malformed expiration dates and dates that are already in the
+past. Expired links no longer redirect. They return `410 Gone` with a short
+message explaining that the link has expired.
+
+Example request:
+
+```json
+{
+  "url": "https://example.com/a/long/path",
+  "alias": "Launch_2026",
+  "expiresAt": "2026-12-31"
+}
+```
 
 ## Environment Variables
 
@@ -227,9 +251,9 @@ openssl rand -base64 32
 
 Deploy the project from Vercel.
 
-Before testing aliases in production, apply the reviewed Drizzle migration from
-a machine whose ignored `.env.local` points at the same Supabase database used
-by Vercel:
+Before testing aliases or expiration dates in production, apply the reviewed
+Drizzle migrations from a machine whose ignored `.env.local` points at the same
+Supabase database used by Vercel:
 
 ```bash
 npm run db:migrate
@@ -260,6 +284,8 @@ On the production domain:
 2. Confirm the returned short URL uses the production domain.
 3. Open the short URL.
 4. Confirm it redirects to the original URL.
+5. Create a link with a future expiration date and confirm it redirects before
+   it expires.
 
 ### Supabase Through Vercel Marketplace
 
@@ -305,6 +331,11 @@ repository.
 - The link may have been created in a different database.
 - `DATABASE_URL` may point to the wrong Supabase project.
 - The original URL must be a previously validated HTTP or HTTPS URL.
+
+### Short URL Returns 410
+
+- The short link exists, but its optional expiration date has passed.
+- Create a new short link if the destination should be available again.
 
 ### Local URLs Appear In Production
 

@@ -79,6 +79,24 @@ describe("GET /{code}", () => {
     expect(body).toContain('href="/"');
   });
 
+  it("returns 410 for expired short codes", async () => {
+    mockedGetShortLink.mockResolvedValue({
+      ok: false,
+      reason: "expired",
+    });
+
+    const response = await GET(
+      createRequest("Ab3xP9q"),
+      createContext("Ab3xP9q"),
+    );
+    const body = await response.text();
+
+    expect(response.status).toBe(410);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(body).toContain("Short link expired");
+    expect(body).toContain("This short link has expired");
+  });
+
   it("returns 404 for invalid short-code formats", async () => {
     const response = await GET(
       createRequest("bad-code!"),

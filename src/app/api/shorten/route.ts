@@ -6,12 +6,14 @@ import {
   CreateShortLinkError,
 } from "../../../lib/short-links/create-short-link";
 import { validateShortCode } from "../../../lib/urls/generate-code";
+import { validateExpiration } from "../../../lib/urls/validate-expiration";
 import { validateUrl } from "../../../lib/urls/validate-url";
 
 type ErrorCode =
   | "ALIAS_CONFLICT"
   | "INTERNAL_ERROR"
   | "INVALID_ALIAS"
+  | "INVALID_EXPIRATION"
   | "INVALID_JSON"
   | "INVALID_URL"
   | "RATE_LIMITED";
@@ -25,6 +27,7 @@ type ErrorResponseBody = {
 
 type ShortenResponseBody = {
   code: string;
+  expiresAt: string | null;
   originalUrl: string;
   shortUrl: string;
 };
@@ -70,6 +73,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   const submittedUrl = body.value.url;
   const submittedAlias = body.value.alias;
+  const submittedExpiresAt = body.value.expiresAt;
   const validation = validateUrl(submittedUrl);
 
   if (!validation.ok) {
@@ -86,15 +90,23 @@ export async function POST(request: Request): Promise<NextResponse> {
     return jsonError(400, "INVALID_ALIAS", aliasValidation.error);
   }
 
+  const expirationValidation = validateExpiration(submittedExpiresAt);
+
+  if (!expirationValidation.ok) {
+    return jsonError(400, "INVALID_EXPIRATION", expirationValidation.error);
+  }
+
   try {
     const shortLink = await createShortLink(validation.url, {
       customCode: aliasValidation.code ?? undefined,
+      expiresAt: expirationValidation.expiresAt,
     });
     const shortUrl = new URL(`/${shortLink.code}`, getRequestOrigin(request));
 
     return NextResponse.json<ShortenResponseBody>(
       {
         code: shortLink.code,
+        expiresAt: shortLink.expiresAt,
         originalUrl: shortLink.originalUrl,
         shortUrl: shortUrl.toString(),
       },
@@ -208,6 +220,7 @@ async function parseRequestJson(request: Request): Promise<
       ok: true;
       value: {
         alias?: unknown;
+        expiresAt?: unknown;
         url?: unknown;
       };
     }
@@ -237,7 +250,7 @@ async function parseRequestJson(request: Request): Promise<
 
 function isPlainJsonObject(
   value: unknown,
-): value is { alias?: unknown; url?: unknown } {
+): value is { alias?: unknown; expiresAt?: unknown; url?: unknown } {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 

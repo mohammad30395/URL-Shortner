@@ -15,6 +15,13 @@
       "when": 1785246948862,
       "tag": "0001_curly_mad_thinker",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785247838401,
+      "tag": "0002_add_expires_at",
+      "breakpoints": true
     }
   ]
 }

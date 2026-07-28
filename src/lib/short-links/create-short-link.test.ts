@@ -35,11 +35,36 @@ describe("createShortLink", () => {
       }),
     ).resolves.toEqual({
       code: "Ab3xP9q",
+      expiresAt: null,
       originalUrl: "https://example.com/",
     });
 
     expect(repository.insertShortLink).toHaveBeenCalledWith({
       code: "Ab3xP9q",
+      expiresAt: null,
+      originalUrl: "https://example.com/",
+    });
+  });
+
+  it("creates a short link with an expiration date", async () => {
+    const expiresAt = new Date("2026-07-29T23:59:59.999Z");
+    const repository = createRepository([{ ok: true }]);
+
+    await expect(
+      createShortLink("https://example.com/", {
+        expiresAt,
+        generateCode: () => "Ab3xP9q",
+        repository,
+      }),
+    ).resolves.toEqual({
+      code: "Ab3xP9q",
+      expiresAt: "2026-07-29T23:59:59.999Z",
+      originalUrl: "https://example.com/",
+    });
+
+    expect(repository.insertShortLink).toHaveBeenCalledWith({
+      code: "Ab3xP9q",
+      expiresAt,
       originalUrl: "https://example.com/",
     });
   });
@@ -63,6 +88,7 @@ describe("createShortLink", () => {
       }),
     ).resolves.toEqual({
       code: "Ef5zT7u",
+      expiresAt: null,
       originalUrl: "https://example.com/",
     });
 
@@ -82,12 +108,14 @@ describe("createShortLink", () => {
       }),
     ).resolves.toEqual({
       code: "Launch_2026",
+      expiresAt: null,
       originalUrl: "https://example.com/",
     });
 
     expect(generateCode).not.toHaveBeenCalled();
     expect(repository.insertShortLink).toHaveBeenCalledWith({
       code: "Launch_2026",
+      expiresAt: null,
       originalUrl: "https://example.com/",
     });
   });

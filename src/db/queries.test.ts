@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 import {
+  buildFindShortLinkExpirationQuery,
   buildInsertShortLinkQuery,
   buildResolveShortLinkQuery,
   insertShortLinkRecord,
@@ -13,6 +14,7 @@ import * as schema from "./schema";
 
 const input = {
   code: "Ab3xP9q",
+  expiresAt: new Date("2026-07-29T23:59:59.999Z"),
   originalUrl: "https://example.com/a/long/path",
 };
 
@@ -26,7 +28,11 @@ describe("direct PostgreSQL queries", () => {
     const query = buildInsertShortLinkQuery(database, input).toSQL();
 
     expect(query.sql).toMatch(/^insert into "short_links"/i);
-    expect(query.params).toEqual([input.code, input.originalUrl]);
+    expect(query.params).toEqual([
+      input.code,
+      input.originalUrl,
+      input.expiresAt.toISOString(),
+    ]);
   });
 
   it("builds one atomic resolution query that updates analytics and returns the URL", () => {
@@ -39,8 +45,22 @@ describe("direct PostgreSQL queries", () => {
     );
     expect(query.sql).toMatch(/"last_accessed_at"\s*=\s*now\(\)/i);
     expect(query.sql).toMatch(/where "short_links"\."code" = \$1/i);
+    expect(query.sql).toMatch(/"short_links"\."expires_at" is null/i);
+    expect(query.sql).toMatch(/"short_links"\."expires_at" > now\(\)/i);
     expect(query.sql).toMatch(/returning "original_url"/i);
     expect(query.params).toEqual([input.code]);
+  });
+
+  it("builds a parameterized inactive-link lookup query", () => {
+    const database = drizzle.mock({ schema });
+    const query = buildFindShortLinkExpirationQuery(
+      database,
+      input.code,
+    ).toSQL();
+
+    expect(query.sql).toMatch(/^select "expires_at" from "short_links"/i);
+    expect(query.sql).toMatch(/where "short_links"\."code" = \$1/i);
+    expect(query.params).toEqual([input.code, 1]);
   });
 
   it("reports a successful insert", async () => {
@@ -82,13 +102,28 @@ describe("direct PostgreSQL queries", () => {
       resolveShortLinkRecord(input.code, async () => input.originalUrl),
     ).resolves.toEqual({
       ok: true,
+      status: "active",
       originalUrl: input.originalUrl,
     });
     await expect(
-      resolveShortLinkRecord(input.code, async () => null),
+      resolveShortLinkRecord(
+        input.code,
+        async () => null,
+        async () => "missing",
+      ),
     ).resolves.toEqual({
       ok: true,
-      originalUrl: null,
+      status: "missing",
+    });
+    await expect(
+      resolveShortLinkRecord(
+        input.code,
+        async () => null,
+        async () => "expired",
+      ),
+    ).resolves.toEqual({
+      ok: true,
+      status: "expired",
     });
   });
 

@@ -9,6 +9,7 @@ const UNIQUE_VIOLATION_CODE = "23505";
 
 type InsertShortLinkInput = {
   code: string;
+  expiresAt: Date | null;
   originalUrl: string;
 };
 
@@ -24,14 +25,22 @@ export type InsertShortLinkRecordResult =
 export type ResolveShortLinkRecordResult =
   | {
       ok: true;
-      originalUrl: string | null;
+      status: "active";
+      originalUrl: string;
+    }
+  | {
+      ok: true;
+      status: "expired" | "missing";
     }
   | {
       ok: false;
     };
 
 type InsertExecutor = (input: InsertShortLinkInput) => Promise<void>;
-type ResolveExecutor = (code: string) => Promise<string | null>;
+type ResolveActiveExecutor = (code: string) => Promise<string | null>;
+type FindInactiveStatusExecutor = (
+  code: string,
+) => Promise<"expired" | "missing">;
 
 export async function insertShortLinkRecord(
   input: InsertShortLinkInput,
@@ -61,12 +70,23 @@ export async function insertShortLinkRecord(
 
 export async function resolveShortLinkRecord(
   code: string,
-  execute: ResolveExecutor = executeResolve,
+  executeActive: ResolveActiveExecutor = executeResolveActive,
+  findInactiveStatus: FindInactiveStatusExecutor = executeFindInactiveStatus,
 ): Promise<ResolveShortLinkRecordResult> {
   try {
+    const originalUrl = await executeActive(code);
+
+    if (originalUrl) {
+      return {
+        ok: true,
+        status: "active",
+        originalUrl,
+      };
+    }
+
     return {
       ok: true,
-      originalUrl: await execute(code),
+      status: await findInactiveStatus(code),
     };
   } catch (error: unknown) {
     logDatabaseFailure(error, "resolution");
@@ -82,6 +102,7 @@ export function buildInsertShortLinkQuery(
 ) {
   return database.insert(shortLinks).values({
     code: input.code,
+    expiresAt: input.expiresAt,
     originalUrl: input.originalUrl,
   });
 }
@@ -93,20 +114,43 @@ export function buildResolveShortLinkQuery(database: Database, code: string) {
       clickCount: sql`${shortLinks.clickCount} + 1`,
       lastAccessedAt: sql`now()`,
     })
-    .where(eq(shortLinks.code, code))
+    .where(
+      sql`${shortLinks.code} = ${code} and (${shortLinks.expiresAt} is null or ${shortLinks.expiresAt} > now())`,
+    )
     .returning({
       originalUrl: shortLinks.originalUrl,
     });
+}
+
+export function buildFindShortLinkExpirationQuery(
+  database: Database,
+  code: string,
+) {
+  return database
+    .select({
+      expiresAt: shortLinks.expiresAt,
+    })
+    .from(shortLinks)
+    .where(eq(shortLinks.code, code))
+    .limit(1);
 }
 
 async function executeInsert(input: InsertShortLinkInput): Promise<void> {
   await buildInsertShortLinkQuery(getDatabase(), input);
 }
 
-async function executeResolve(code: string): Promise<string | null> {
+async function executeResolveActive(code: string): Promise<string | null> {
   const rows = await buildResolveShortLinkQuery(getDatabase(), code);
 
   return rows.at(0)?.originalUrl ?? null;
+}
+
+async function executeFindInactiveStatus(
+  code: string,
+): Promise<"expired" | "missing"> {
+  const rows = await buildFindShortLinkExpirationQuery(getDatabase(), code);
+
+  return rows.length > 0 ? "expired" : "missing";
 }
 
 function isShortCodeCollision(error: unknown): boolean {
