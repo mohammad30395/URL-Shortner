@@ -34,7 +34,7 @@ export type ShortenRateLimitResult =
     }
   | {
       ok: false;
-      reason: "configuration";
+      reason: "configuration" | "unavailable";
     };
 
 let cachedLimiter: RateLimiter | undefined;
@@ -74,7 +74,17 @@ export async function checkShortenRateLimit(
     options.limiter ??
     getRateLimiter(config.url, config.token);
   const identifier = hashClientIdentifier(request, config.hashSecret);
-  const result = await limiter.limit(identifier);
+  let result: Awaited<ReturnType<RateLimiter["limit"]>>;
+
+  try {
+    result = await limiter.limit(identifier);
+  } catch {
+    console.error("Rate limiting is temporarily unavailable for POST /api/shorten.");
+    return {
+      ok: false,
+      reason: "unavailable",
+    };
+  }
 
   if (result.success) {
     return {

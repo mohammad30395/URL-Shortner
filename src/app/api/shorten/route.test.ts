@@ -177,4 +177,26 @@ describe("POST /api/shorten", () => {
     expect(response.status).toBe(500);
     expect(mockedCreateShortLink).not.toHaveBeenCalled();
   });
+
+  it("returns a generic 500 when the rate limiter is unavailable", async () => {
+    mockedCheckShortenRateLimit.mockResolvedValue({
+      ok: false,
+      reason: "unavailable",
+    });
+
+    const response = await POST(
+      createJsonRequest({
+        url: "https://example.com/",
+      }),
+    );
+
+    await expect(readJson(response)).resolves.toEqual({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "The short link could not be created. Please try again later.",
+      },
+    });
+    expect(response.status).toBe(500);
+    expect(mockedCreateShortLink).not.toHaveBeenCalled();
+  });
 });

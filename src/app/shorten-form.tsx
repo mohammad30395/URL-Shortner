@@ -24,6 +24,7 @@ export function ShortenForm() {
   const errorId = useId();
   const resultId = useId();
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const submittingRef = useRef(false);
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ShortenResult | null>(null);
@@ -41,7 +42,7 @@ export function ShortenForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (isSubmitting) {
+    if (submittingRef.current) {
       return;
     }
 
@@ -54,6 +55,7 @@ export function ShortenForm() {
       return;
     }
 
+    submittingRef.current = true;
     setIsSubmitting(true);
     setError(null);
     setResult(null);
@@ -85,6 +87,7 @@ export function ShortenForm() {
     } catch {
       setError("Unable to shorten the URL right now. Check your connection and try again.");
     } finally {
+      submittingRef.current = false;
       setIsSubmitting(false);
     }
   }

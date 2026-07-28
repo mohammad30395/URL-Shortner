@@ -104,6 +104,28 @@ describe("checkShortenRateLimit", () => {
     );
   });
 
+  it("returns unavailable when the Upstash limiter fails", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const limiter = {
+      limit: vi.fn(async () => {
+        throw new Error("redis unavailable");
+      }),
+    };
+
+    await expect(
+      checkShortenRateLimit(createRequest(), {
+        environment: configuredEnvironment,
+        limiter,
+      }),
+    ).resolves.toEqual({
+      ok: false,
+      reason: "unavailable",
+    });
+    expect(error).toHaveBeenCalledWith(
+      "Rate limiting is temporarily unavailable for POST /api/shorten.",
+    );
+  });
+
   it("hashes client IP information without exposing the raw address", () => {
     const identifier = hashClientIdentifier(createRequest(), "test-secret");
 

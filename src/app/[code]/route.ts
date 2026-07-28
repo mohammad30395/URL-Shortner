@@ -24,7 +24,13 @@ export async function GET(
     return notFoundResponse();
   }
 
-  const result = await getShortLink(code);
+  let result: Awaited<ReturnType<typeof getShortLink>>;
+
+  try {
+    result = await getShortLink(code);
+  } catch {
+    return notFoundResponse();
+  }
 
   if (!result.ok || createsRedirectLoop(request, result.originalUrl)) {
     return notFoundResponse();

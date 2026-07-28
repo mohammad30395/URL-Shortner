@@ -15,7 +15,9 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 ## Scripts
 
 - `npm run dev` starts the local development server.
+- `npm run test` runs unit tests.
 - `npm run lint` runs ESLint.
+- `npm run typecheck` runs TypeScript type checking.
 - `npm run build` creates a production build.
 
 ## Database

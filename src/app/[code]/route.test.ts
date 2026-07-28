@@ -75,6 +75,14 @@ describe("GET /{code}", () => {
     expect(response.status).toBe(404);
   });
 
+  it("returns 404 when link lookup rejects", async () => {
+    mockedGetShortLink.mockRejectedValue(new Error("missing configuration"));
+
+    const response = await GET(createRequest("Ab3xP9q"), createContext("Ab3xP9q"));
+
+    expect(response.status).toBe(404);
+  });
+
   it("uses a temporary redirect status and destination", async () => {
     mockedGetShortLink.mockResolvedValue({
       ok: true,
