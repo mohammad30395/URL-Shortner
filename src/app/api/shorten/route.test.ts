@@ -1,12 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("../../../lib/rate-limit/shorten-rate-limit", () => ({
+  checkShortenRateLimit: vi.fn(),
+}));
+
 vi.mock("../../../lib/short-links/create-short-link", () => ({
   createShortLink: vi.fn(),
 }));
 
+import { checkShortenRateLimit } from "../../../lib/rate-limit/shorten-rate-limit";
 import { createShortLink } from "../../../lib/short-links/create-short-link";
 import { POST } from "./route";
 
+const mockedCheckShortenRateLimit = vi.mocked(checkShortenRateLimit);
 const mockedCreateShortLink = vi.mocked(createShortLink);
 
 function createJsonRequest(body: unknown): Request {
@@ -25,6 +31,10 @@ async function readJson(response: Response): Promise<unknown> {
 
 describe("POST /api/shorten", () => {
   beforeEach(() => {
+    mockedCheckShortenRateLimit.mockReset();
+    mockedCheckShortenRateLimit.mockResolvedValue({
+      ok: true,
+    });
     mockedCreateShortLink.mockReset();
   });
 
@@ -119,5 +129,52 @@ describe("POST /api/shorten", () => {
       },
     });
     expect(response.status).toBe(500);
+  });
+
+  it("returns 429 when rate limited", async () => {
+    mockedCheckShortenRateLimit.mockResolvedValue({
+      ok: false,
+      reason: "limited",
+      retryAfterSeconds: 120,
+    });
+
+    const response = await POST(
+      createJsonRequest({
+        url: "https://example.com/",
+      }),
+    );
+
+    await expect(readJson(response)).resolves.toEqual({
+      error: {
+        code: "RATE_LIMITED",
+        message: "Too many shortening requests. Please try again later.",
+      },
+    });
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("120");
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(mockedCreateShortLink).not.toHaveBeenCalled();
+  });
+
+  it("returns a generic 500 when production rate-limit configuration is missing", async () => {
+    mockedCheckShortenRateLimit.mockResolvedValue({
+      ok: false,
+      reason: "configuration",
+    });
+
+    const response = await POST(
+      createJsonRequest({
+        url: "https://example.com/",
+      }),
+    );
+
+    await expect(readJson(response)).resolves.toEqual({
+      error: {
+        code: "INTERNAL_ERROR",
+        message: "The short link could not be created. Please try again later.",
+      },
+    });
+    expect(response.status).toBe(500);
+    expect(mockedCreateShortLink).not.toHaveBeenCalled();
   });
 });

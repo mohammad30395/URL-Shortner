@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 
+import { checkShortenRateLimit } from "../../../lib/rate-limit/shorten-rate-limit";
 import { createShortLink } from "../../../lib/short-links/create-short-link";
 import { validateUrl } from "../../../lib/urls/validate-url";
 
-type ErrorCode = "INVALID_JSON" | "INVALID_URL" | "INTERNAL_ERROR";
+type ErrorCode =
+  | "INVALID_JSON"
+  | "INVALID_URL"
+  | "RATE_LIMITED"
+  | "INTERNAL_ERROR";
 
 type ErrorResponseBody = {
   error: {
@@ -24,6 +29,27 @@ const JSON_HEADERS = {
 };
 
 export async function POST(request: Request): Promise<NextResponse> {
+  const rateLimit = await checkShortenRateLimit(request);
+
+  if (!rateLimit.ok) {
+    if (rateLimit.reason === "limited") {
+      return jsonError(
+        429,
+        "RATE_LIMITED",
+        "Too many shortening requests. Please try again later.",
+        {
+          "Retry-After": rateLimit.retryAfterSeconds.toString(),
+        },
+      );
+    }
+
+    return jsonError(
+      500,
+      "INTERNAL_ERROR",
+      "The short link could not be created. Please try again later.",
+    );
+  }
+
   const body = await parseRequestJson(request);
 
   if (!body.ok) {
@@ -73,6 +99,7 @@ function jsonError(
   status: number,
   code: ErrorCode,
   message: string,
+  headers: Record<string, string> = {},
 ): NextResponse<ErrorResponseBody> {
   return NextResponse.json<ErrorResponseBody>(
     {
@@ -83,7 +110,10 @@ function jsonError(
     },
     {
       status,
-      headers: JSON_HEADERS,
+      headers: {
+        ...JSON_HEADERS,
+        ...headers,
+      },
     },
   );
 }
