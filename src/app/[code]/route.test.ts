@@ -32,7 +32,10 @@ describe("GET /{code}", () => {
       originalUrl: "https://example.com/a/long/path",
     });
 
-    const response = await GET(createRequest("Ab3xP9q"), createContext("Ab3xP9q"));
+    const response = await GET(
+      createRequest("Ab3xP9q"),
+      createContext("Ab3xP9q"),
+    );
 
     expect(response.status).toBe(307);
     expect(response.headers.get("Location")).toBe(
@@ -48,7 +51,10 @@ describe("GET /{code}", () => {
       reason: "missing",
     });
 
-    const response = await GET(createRequest("Ab3xP9q"), createContext("Ab3xP9q"));
+    const response = await GET(
+      createRequest("Ab3xP9q"),
+      createContext("Ab3xP9q"),
+    );
     const body = await response.text();
 
     expect(response.status).toBe(404);
@@ -58,7 +64,10 @@ describe("GET /{code}", () => {
   });
 
   it("returns 404 for invalid short-code formats", async () => {
-    const response = await GET(createRequest("bad-code!"), createContext("bad-code!"));
+    const response = await GET(
+      createRequest("bad-code!"),
+      createContext("bad-code!"),
+    );
 
     expect(response.status).toBe(404);
     expect(mockedGetShortLink).not.toHaveBeenCalled();
@@ -70,7 +79,10 @@ describe("GET /{code}", () => {
       reason: "database",
     });
 
-    const response = await GET(createRequest("Ab3xP9q"), createContext("Ab3xP9q"));
+    const response = await GET(
+      createRequest("Ab3xP9q"),
+      createContext("Ab3xP9q"),
+    );
 
     expect(response.status).toBe(404);
   });
@@ -78,7 +90,10 @@ describe("GET /{code}", () => {
   it("returns 404 when link lookup rejects", async () => {
     mockedGetShortLink.mockRejectedValue(new Error("missing configuration"));
 
-    const response = await GET(createRequest("Ab3xP9q"), createContext("Ab3xP9q"));
+    const response = await GET(
+      createRequest("Ab3xP9q"),
+      createContext("Ab3xP9q"),
+    );
 
     expect(response.status).toBe(404);
   });
@@ -89,7 +104,10 @@ describe("GET /{code}", () => {
       originalUrl: "http://example.com/",
     });
 
-    const response = await GET(createRequest("Cd4yR8s"), createContext("Cd4yR8s"));
+    const response = await GET(
+      createRequest("Cd4yR8s"),
+      createContext("Cd4yR8s"),
+    );
 
     expect(response.status).toBe(307);
     expect(response.headers.get("Location")).toBe("http://example.com/");
@@ -101,7 +119,10 @@ describe("GET /{code}", () => {
       originalUrl: "http://localhost:3000/Ab3xP9q",
     });
 
-    const response = await GET(createRequest("Ab3xP9q"), createContext("Ab3xP9q"));
+    const response = await GET(
+      createRequest("Ab3xP9q"),
+      createContext("Ab3xP9q"),
+    );
 
     expect(response.status).toBe(404);
   });

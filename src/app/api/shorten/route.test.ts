@@ -114,7 +114,9 @@ describe("POST /api/shorten", () => {
   });
 
   it("returns a generic 500 when database insertion fails", async () => {
-    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const errorLog = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
     mockedCreateShortLink.mockRejectedValue(new Error("database unavailable"));
 
     const response = await POST(
@@ -137,9 +139,13 @@ describe("POST /api/shorten", () => {
   });
 
   it("redacts database URLs from server-side error logs", async () => {
-    const errorLog = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const errorLog = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => undefined);
     mockedCreateShortLink.mockRejectedValue(
-      new Error("Failed to connect to postgresql://user:password@host/database"),
+      new Error(
+        "Failed to connect to postgresql://user:password@host/database",
+      ),
     );
 
     const response = await POST(

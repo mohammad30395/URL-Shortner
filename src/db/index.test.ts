@@ -2,10 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import {
-  DatabaseConfigurationError,
-  readDatabaseUrl,
-} from "./index";
+import { DatabaseConfigurationError, readDatabaseUrl } from "./index";
 
 describe("database configuration", () => {
   it("returns a configured database URL", () => {

@@ -54,6 +54,3 @@ export const shortLinks = pgTable(
     ),
   ],
 ).enableRLS();
-
-export type NewShortLink = typeof shortLinks.$inferInsert;
-export type ShortLink = typeof shortLinks.$inferSelect;

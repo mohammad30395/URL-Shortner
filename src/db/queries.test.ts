@@ -34,7 +34,9 @@ describe("direct PostgreSQL queries", () => {
     const query = buildResolveShortLinkQuery(database, input.code).toSQL();
 
     expect(query.sql).toMatch(/^update "short_links"/i);
-    expect(query.sql).toMatch(/"click_count"\s*=\s*"short_links"\."click_count" \+ 1/i);
+    expect(query.sql).toMatch(
+      /"click_count"\s*=\s*"short_links"\."click_count" \+ 1/i,
+    );
     expect(query.sql).toMatch(/"last_accessed_at"\s*=\s*now\(\)/i);
     expect(query.sql).toMatch(/where "short_links"\."code" = \$1/i);
     expect(query.sql).toMatch(/returning "original_url"/i);

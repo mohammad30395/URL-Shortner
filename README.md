@@ -126,13 +126,13 @@ URL with a `307` redirect.
 
 ## Environment Variables
 
-| Variable | Public Or Server-only | Required Or Optional | Used For |
-| --- | --- | --- | --- |
-| `DATABASE_URL` | Server-only | Required | Supabase PostgreSQL connection string. Use the transaction-pooler URL in Vercel. |
-| `NEXT_PUBLIC_APP_URL` | Public | Required | Fallback public app origin for generated short URLs. |
-| `UPSTASH_REDIS_REST_URL` | Server-only | Optional locally, required in production | Upstash Redis REST endpoint for rate limiting `POST /api/shorten`. |
-| `UPSTASH_REDIS_REST_TOKEN` | Server-only | Optional locally, required in production | Upstash Redis REST credential. |
-| `RATE_LIMIT_HASH_SECRET` | Server-only | Optional locally, required in production | Secret used to hash client IP signals before rate limiting. |
+| Variable                   | Public Or Server-only | Required Or Optional                     | Used For                                                                         |
+| -------------------------- | --------------------- | ---------------------------------------- | -------------------------------------------------------------------------------- |
+| `DATABASE_URL`             | Server-only           | Required                                 | Supabase PostgreSQL connection string. Use the transaction-pooler URL in Vercel. |
+| `NEXT_PUBLIC_APP_URL`      | Public                | Required                                 | Fallback public app origin for generated short URLs.                             |
+| `UPSTASH_REDIS_REST_URL`   | Server-only           | Optional locally, required in production | Upstash Redis REST endpoint for rate limiting `POST /api/shorten`.               |
+| `UPSTASH_REDIS_REST_TOKEN` | Server-only           | Optional locally, required in production | Upstash Redis REST credential.                                                   |
+| `RATE_LIMIT_HASH_SECRET`   | Server-only           | Optional locally, required in production | Secret used to hash client IP signals before rate limiting.                      |
 
 Security rules:
 
@@ -153,6 +153,8 @@ These commands match `package.json`:
 
 ```bash
 npm run dev
+npm run format
+npm run format:check
 npm run test
 npm run lint
 npm run typecheck

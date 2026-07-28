@@ -22,7 +22,6 @@ const COPIED_RESET_DELAY_MS = 1800;
 export function ShortenForm() {
   const urlInputId = useId();
   const errorId = useId();
-  const resultId = useId();
   const copyResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const submittingRef = useRef(false);
   const [url, setUrl] = useState("");
@@ -85,7 +84,9 @@ export function ShortenForm() {
 
       setResult(payload);
     } catch {
-      setError("Unable to shorten the URL right now. Check your connection and try again.");
+      setError(
+        "Unable to shorten the URL right now. Check your connection and try again.",
+      );
     } finally {
       submittingRef.current = false;
       setIsSubmitting(false);
@@ -146,7 +147,11 @@ export function ShortenForm() {
         </div>
 
         {error ? (
-          <p id={errorId} role="alert" className="text-sm font-medium text-red-700">
+          <p
+            id={errorId}
+            role="alert"
+            className="text-sm font-medium text-red-700"
+          >
             {error}
           </p>
         ) : null}
@@ -174,7 +179,6 @@ export function ShortenForm() {
 
         {result ? (
           <section
-            id={resultId}
             aria-label="Shortened URL result"
             className="rounded-lg border border-emerald-200 bg-emerald-50 p-4"
           >
@@ -183,7 +187,10 @@ export function ShortenForm() {
               <p className="mt-1 break-all text-lg font-semibold text-slate-950">
                 {result.shortUrl}
               </p>
-              <p className="mt-3 truncate text-sm text-slate-700" title={result.originalUrl}>
+              <p
+                className="mt-3 truncate text-sm text-slate-700"
+                title={result.originalUrl}
+              >
                 Original: {result.originalUrl}
               </p>
             </div>

@@ -61,7 +61,9 @@ export async function checkShortenRateLimit(
     }
 
     if (!warnedAboutMissingDevelopmentConfig) {
-      console.warn("Rate limiting disabled in development: Upstash env vars are missing.");
+      console.warn(
+        "Rate limiting disabled in development: Upstash env vars are missing.",
+      );
       warnedAboutMissingDevelopmentConfig = true;
     }
 
@@ -70,16 +72,16 @@ export async function checkShortenRateLimit(
     };
   }
 
-  const limiter =
-    options.limiter ??
-    getRateLimiter(config.url, config.token);
+  const limiter = options.limiter ?? getRateLimiter(config.url, config.token);
   const identifier = hashClientIdentifier(request, config.hashSecret);
   let result: Awaited<ReturnType<RateLimiter["limit"]>>;
 
   try {
     result = await limiter.limit(identifier);
   } catch {
-    console.error("Rate limiting is temporarily unavailable for POST /api/shorten.");
+    console.error(
+      "Rate limiting is temporarily unavailable for POST /api/shorten.",
+    );
     return {
       ok: false,
       reason: "unavailable",
@@ -143,7 +145,10 @@ function getRateLimiter(url: string, token: string): RateLimiter {
         url,
         token,
       }),
-      limiter: Ratelimit.slidingWindow(RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_WINDOW),
+      limiter: Ratelimit.slidingWindow(
+        RATE_LIMIT_MAX_REQUESTS,
+        RATE_LIMIT_WINDOW,
+      ),
       prefix: RATE_LIMIT_PREFIX,
       analytics: false,
       ephemeralCache: false,

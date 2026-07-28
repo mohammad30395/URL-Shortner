@@ -2,11 +2,7 @@ import "server-only";
 
 import { eq, sql } from "drizzle-orm";
 
-import {
-  DatabaseConfigurationError,
-  getDatabase,
-  type Database,
-} from ".";
+import { DatabaseConfigurationError, getDatabase, type Database } from ".";
 import { shortLinks } from "./schema";
 
 const UNIQUE_VIOLATION_CODE = "23505";

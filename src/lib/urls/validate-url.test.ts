@@ -31,15 +31,16 @@ describe("validateUrl", () => {
     });
   });
 
-  it.each(["javascript:alert(1)", "data:text/plain,hello", "ftp://example.com"])(
-    "rejects unsupported protocol %s",
-    (url) => {
-      expect(validateUrl(url)).toEqual({
-        ok: false,
-        error: "Only HTTP and HTTPS URLs are supported.",
-      });
-    },
-  );
+  it.each([
+    "javascript:alert(1)",
+    "data:text/plain,hello",
+    "ftp://example.com",
+  ])("rejects unsupported protocol %s", (url) => {
+    expect(validateUrl(url)).toEqual({
+      ok: false,
+      error: "Only HTTP and HTTPS URLs are supported.",
+    });
+  });
 
   it("rejects invalid URLs", () => {
     expect(validateUrl("not a url")).toEqual({

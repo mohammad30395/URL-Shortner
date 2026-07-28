@@ -84,9 +84,7 @@ describe("createShortLink", () => {
         generateCode: () => "Ab3xP9q",
         repository,
       }),
-    ).rejects.toMatchObject(
-      new CreateShortLinkError("CODE_COLLISION_LIMIT"),
-    );
+    ).rejects.toMatchObject(new CreateShortLinkError("CODE_COLLISION_LIMIT"));
 
     expect(repository.insertShortLink).toHaveBeenCalledTimes(5);
   });

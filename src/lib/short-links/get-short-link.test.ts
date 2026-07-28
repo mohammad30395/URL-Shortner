@@ -2,10 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import {
-  getShortLink,
-  type ShortLinkLookupRepository,
-} from "./get-short-link";
+import { getShortLink, type ShortLinkLookupRepository } from "./get-short-link";
 
 function createRepository(
   result: Awaited<

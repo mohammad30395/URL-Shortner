@@ -21,9 +21,7 @@ export type ShortLinkRepository = {
 };
 
 export class CreateShortLinkError extends Error {
-  constructor(
-    public readonly code: "DATABASE_ERROR" | "CODE_COLLISION_LIMIT",
-  ) {
+  constructor(public readonly code: "DATABASE_ERROR" | "CODE_COLLISION_LIMIT") {
     super(code);
     this.name = "CreateShortLinkError";
   }

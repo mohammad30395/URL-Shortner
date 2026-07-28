@@ -5,10 +5,7 @@ import { createShortLink } from "../../../lib/short-links/create-short-link";
 import { validateUrl } from "../../../lib/urls/validate-url";
 
 type ErrorCode =
-  | "INVALID_JSON"
-  | "INVALID_URL"
-  | "RATE_LIMITED"
-  | "INTERNAL_ERROR";
+  "INVALID_JSON" | "INVALID_URL" | "RATE_LIMITED" | "INTERNAL_ERROR";
 
 type ErrorResponseBody = {
   error: {
@@ -142,9 +139,7 @@ function jsonError(
   );
 }
 
-async function parseRequestJson(
-  request: Request,
-): Promise<
+async function parseRequestJson(request: Request): Promise<
   | {
       ok: true;
       value: {
