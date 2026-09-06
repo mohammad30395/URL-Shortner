@@ -387,3 +387,11 @@ Public URL shorteners can be abused for spam, phishing, malware, and unwanted
 redirects. Rate limiting and abuse monitoring are recommended before public
 use. The owner should provide a reporting mechanism before offering the service
 broadly.
+
+## License
+
+This project is licensed under the MIT License.
+
+Copyright (c) 2026 Mohammad Mahmudul Kabir Fahmid.
+
+See [LICENSE](LICENSE) for the full license text.
